@@ -1,7 +1,7 @@
 package uk.ac.bradford.cookgame;
 
+import java.awt.*;
 import java.util.ArrayList;
-import java.awt.Point;
 import java.util.Random;
 
 /**
@@ -41,15 +41,6 @@ public class GameEngine {
      */
     public static final int LEVEL_HEIGHT = 18;
 
-    /**
-     * A random number generator that can be used to include randomised choices
-     * in the creation of levels, in choosing places to place the player and
-     * customers, and to randomise movement etc. Passing an integer (e.g. 123)
-     * to the constructor called here will give fixed results - the same numbers
-     * will be generated every time WHICH CAN BE VERY USEFUL FOR TESTING AND
-     * BUGFIXING!
-     */
-    private Random rng = new Random();
 
     /**
      * The current level number for the game. As the player completes levels the
@@ -134,9 +125,13 @@ public class GameEngine {
      * the current game. The size of this array should use the width and height
      * of the game level using the LEVEL_WIDTH and LEVEL_HEIGHT attributes.
      */
-    private TileType[][] generateLevel() {
-        //YOUR CODE HERE
-        return null;    //modfy to return the 2D array that you build in this method
+    private TileType[][] generateLevel() 
+    {
+        Level level = new Level(LEVEL_WIDTH, LEVEL_HEIGHT, levelNumber-1/*because Paul set level count at 1 not 0*/);
+        TileType[][] tilemap = level.genLevel(levelNumber-1);
+        levelNumber++; //this needs sorting for if they fail a level
+        return tilemap;
+        
     }
 
     /**
