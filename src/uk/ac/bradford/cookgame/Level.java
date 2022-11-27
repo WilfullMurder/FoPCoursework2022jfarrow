@@ -4,6 +4,7 @@
  */
 package uk.ac.bradford.cookgame;
 
+import java.awt.Point;
 import java.util.ArrayList;
 import java.util.Random;
 import uk.ac.bradford.cookgame.GameEngine.TileType;
@@ -17,35 +18,63 @@ public class Level
 {
     private final int _playWidth;
     private final int _playHeight;
-    private int currentLevelIndex;
-    
+    private final int currentLevelIndex;
+    private final GameEngine gEngine;
+    private Player player;
+    private final int _difficulty;
+    private ArrayList<Point> _spawnLocs;
+    private Point _playerSpawnLoc;
 
-    Tilemap tilemaps; 
+    private Tilemap tilemaps;
+    private TileType[][] layout;
     
     
-    public Level(int width, int height, int levelIndex)
+    public Level(int width, int height, int levelIndex, GameEngine engine)
     {
         _playWidth = width;
         _playHeight = height;
         currentLevelIndex = levelIndex;
+        
+        _spawnLocs = new ArrayList<Point>();
+        
+        gEngine = engine;
 
         tilemaps = new Tilemap(width, height, levelIndex);
         
+        layout = genLevel(currentLevelIndex);
         
         
-
         
+        if (levelIndex <= 100)
+        {
+            _difficulty = (int)(levelIndex + 1) / 10;
+        }
+        else
+        {
+            _difficulty = (int)(levelIndex + 1) / 25;
+        }
     }
     
-    public TileType[][] genLevel(int levelIndex)
+    /**
+     * generate a new level of tile types
+     * @param levelIndex the current level being played
+     * @return A 2D array filled with TileType values representing the current game level
+     */
+    private TileType[][] genLevel(int levelIndex)
     {
-        int mapIndex = levelIndex;
+
+        int mapIndex = levelIndex % tilemaps.getSize();
         int[][] map = tilemaps.getTileMap(mapIndex);
         if (map == null) {map = tilemaps.getTileMap(0);}
 
         TileType[][] level = new TileType[_playWidth][_playHeight];
-      
-        int floorSwitch = getRandomInt(0, 1);
+        
+        int floorSwitch = 0;
+        if (levelIndex > 0)
+        {
+           floorSwitch = getRandomInt(0, 1);
+        }
+        
         for(int i =0; i < _playWidth; i++)
         {
             for (int j = 0; j<_playHeight; j++)
@@ -61,9 +90,10 @@ public class Level
                         case 1:
 
                             
-                            if( floorSwitch == 0)
+                            if(floorSwitch == 1)
                             {
                                 level[i][j] = TileType.FLOOR1;
+                                
                             }
                             else
                             {
@@ -72,40 +102,131 @@ public class Level
                             break;
                         
                         case 2:
-                            level[i][j] = TileType.DOOR;
-                            
-                            
+                             level[i][j] = TileType.DOOR;
+                             
+                             if (i <=0)
+                             {
+                                 _playerSpawnLoc = new Point(i+1, j);
+                             }
+                             else if (i >= _playWidth - 1 )
+                             {
+                                 _playerSpawnLoc = new Point(i-1, j);
+                             }
+                             else if (j <= 0)
+                             {
+                                 _playerSpawnLoc = new Point(i, j+1);
+                             }
+                             else if(j >= _playHeight - 1)
+                             {
+                                 _playerSpawnLoc = new Point(i-1, j-1);
+                             }
+                             
+                             
+                             break;
+                             
+                        case 3:
+                            level[i][j] = TileType.FOOD1;
+                            break;
+                        case 4:
+                            level[i][j] = TileType.FOOD2;
+                            break;
+                        case 5:
+                            level[i][j] = TileType.FOOD3;
                     }
+                    level = populateLevel(i,j,level);
                 }
             }
         }
         
+        
         return level;
     }
-    
-    private ArrayList<String> initLevels(ArrayList<String> level)
+    /**
+     * populate level with obstacles.
+     * @param i current i value 
+     * @param j current j value
+     * @param level current TileType[][]
+     * @return updated 2d arr of tile types
+     */
+    private TileType[][] populateLevel(int i, int j, TileType[][] level)
     {
-        //here we need to create level tilemaps
-                level.add("WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW");
-        for (int i = 0; i < 10; i++)
+        if (level[i][j] == TileType.FLOOR1 || level[i][j] == TileType.FLOOR2)
         {
-            level.add("W..............................W");
+            int r = getRandomInt(0, 100);
+        
+            if (r <= _difficulty)
+            {
+                level[i][j] = TileType.TABLE;
+            }
+            else
+            {
+                _spawnLocs.add(new Point(i,j));
+            }
+          
         }
-        level.add("WWWWWWWWWWWWWWWWWWWWWWWWWWWWDWWW");
+        
+        
+     
         
         return level;
     }
     
-    private void populateLevel(int numObstacles, int numCustomers)
-    {
-        //this needs to add obstacles and customers to the level
-    }
-    
-  
+    /**
+     * INCLUSIVE!!
+     * @param min smallest desired return value
+     * @param max largest desired return value
+     * @return random int between min-max (inclusive)
+     */
     private int getRandomInt(int min, int max)
     {
-        Random r = new Random();
-        return r.nextInt(max-min) + min;
+        return (int) (Math.random() * (max+1))| min;
     }
     
+    public TileType[][] getLevelLayout()
+    {
+        return layout;
+    }
+    
+    public TileType getTileAtLoc(int x, int y)
+    {
+        return getLevelLayout()[x][y];
+    }
+    
+    
+    public ArrayList<Point> getGenericSpawnLocs()
+    {
+        return _spawnLocs;
+    }
+    
+    public Point getGenericSpawnPoint(int index)
+    {
+        return getGenericSpawnLocs().get(index);
+    }
+    
+    public int getGenericSpawnPointX(int index)
+    {
+        return getGenericSpawnPoint(index).x;
+    }
+    
+     public int getGenericSpawnPointY(int index)
+    {
+        return getGenericSpawnPoint(index).y;
+    }
+     
+     private Point getPlayerSpawnLoc()
+     {
+         return _playerSpawnLoc;
+     }
+     
+     public int getPlayerSpawnX()
+     {
+         return getPlayerSpawnLoc().x;
+     }
+     
+     public int getPlayerSpawnY()
+     {
+         return getPlayerSpawnLoc().y;
+     }
+     
+     
 }

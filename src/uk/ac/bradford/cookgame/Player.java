@@ -50,6 +50,14 @@ public class Player extends Entity {
         carriedFoodType = 0;
         setPosition(x, y);
     }
+    
+    public Player(int maxStamina)
+    {
+        this.maxStamina = maxStamina;
+        this.stamina = maxStamina;
+        carryingFood = false;
+        carriedFoodType = 0;
+    }
 
     /**
      * Changes the current stamina value for this Player, setting the stamina to

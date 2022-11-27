@@ -48,7 +48,7 @@ public class GameEngine {
      * difficulty e.g. by creating additional customers and reducing patience
      * etc.
      */
-    private int levelNumber = 1;  //current level
+    private int levelNumber = 0;  //current level
 
     /**
      * The current turn number. Increased by one every turn. Used to control
@@ -73,7 +73,8 @@ public class GameEngine {
      * when it is created. This is the array that is used to draw images to the
      * screen by the GUI class.
      */
-    private TileType[][] level;
+    private Level currentLevel;
+    private TileType[][] layout;
 
     /**
      * An ArrayList of Point objects used to create and track possible locations
@@ -127,10 +128,10 @@ public class GameEngine {
      */
     private TileType[][] generateLevel() 
     {
-        Level level = new Level(LEVEL_WIDTH, LEVEL_HEIGHT, levelNumber-1/*because Paul set level count at 1 not 0*/);
-        TileType[][] tilemap = level.genLevel(levelNumber-1);
+        currentLevel = new Level(LEVEL_WIDTH, LEVEL_HEIGHT, levelNumber, this);
+        TileType[][] Layout = currentLevel.getLevelLayout();
         levelNumber++; //this needs sorting for if they fail a level
-        return tilemap;
+        return Layout;
         
     }
 
@@ -147,8 +148,7 @@ public class GameEngine {
      * added into the game.
      */
     private ArrayList<Point> getSpawns() {
-        //YOUR CODE HERE
-        return null;    //modify to return the ArrayList
+        return currentLevel.getGenericSpawnLocs();    //modify to return the ArrayList
     }
 
     /**
@@ -200,9 +200,13 @@ public class GameEngine {
      *
      * @return A Player object representing the player in the game
      */
-    private Player createPlayer() {
-        //YOUR CODE HERE
-        return null;    //modify to return a Player object
+    private Player createPlayer() 
+    {
+        //always spawn by the door
+        int x = currentLevel.getPlayerSpawnX();
+        int y = currentLevel.getPlayerSpawnY();        
+        Player p = new Player(5, x, y);
+        return p;    //modify to return a Player object
     }
 
     /**
@@ -371,7 +375,7 @@ public class GameEngine {
             moveAllCustomers();
             reduceCustomerPatience();
         }
-        gui.updateDisplay(level, player, customers);
+        gui.updateDisplay(layout, player, customers);
     }
 
     /**
@@ -381,10 +385,10 @@ public class GameEngine {
      * customers.
      */
     public void startGame() {
-        level = generateLevel();
+        layout = generateLevel();
         spawnLocations = getSpawns();
         customers = addCustomers();
         player = createPlayer();
-        gui.updateDisplay(level, player, customers);
+        gui.updateDisplay(layout, player, customers);
     }
 }
