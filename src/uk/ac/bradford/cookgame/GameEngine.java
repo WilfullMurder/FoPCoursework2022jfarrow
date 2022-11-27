@@ -1,7 +1,7 @@
 package uk.ac.bradford.cookgame;
 
+import java.awt.*;
 import java.util.ArrayList;
-import java.awt.Point;
 import java.util.Random;
 
 /**
@@ -41,15 +41,6 @@ public class GameEngine {
      */
     public static final int LEVEL_HEIGHT = 18;
 
-    /**
-     * A random number generator that can be used to include randomised choices
-     * in the creation of levels, in choosing places to place the player and
-     * customers, and to randomise movement etc. Passing an integer (e.g. 123)
-     * to the constructor called here will give fixed results - the same numbers
-     * will be generated every time WHICH CAN BE VERY USEFUL FOR TESTING AND
-     * BUGFIXING!
-     */
-    private Random rng = new Random();
 
     /**
      * The current level number for the game. As the player completes levels the
@@ -57,7 +48,7 @@ public class GameEngine {
      * difficulty e.g. by creating additional customers and reducing patience
      * etc.
      */
-    private int levelNumber = 1;  //current level
+    private int levelNumber = 0;  //current level
 
     /**
      * The current turn number. Increased by one every turn. Used to control
@@ -82,7 +73,8 @@ public class GameEngine {
      * when it is created. This is the array that is used to draw images to the
      * screen by the GUI class.
      */
-    private TileType[][] level;
+    private Level currentLevel;
+    private TileType[][] layout;
 
     /**
      * An ArrayList of Point objects used to create and track possible locations
@@ -134,9 +126,13 @@ public class GameEngine {
      * the current game. The size of this array should use the width and height
      * of the game level using the LEVEL_WIDTH and LEVEL_HEIGHT attributes.
      */
-    private TileType[][] generateLevel() {
-        //YOUR CODE HERE
-        return null;    //modfy to return the 2D array that you build in this method
+    private TileType[][] generateLevel() 
+    {
+        currentLevel = new Level(LEVEL_WIDTH, LEVEL_HEIGHT, levelNumber, this);
+        TileType[][] Layout = currentLevel.getLevelLayout();
+        levelNumber++; //this needs sorting for if they fail a level
+        return Layout;
+        
     }
 
     /**
@@ -152,8 +148,7 @@ public class GameEngine {
      * added into the game.
      */
     private ArrayList<Point> getSpawns() {
-        //YOUR CODE HERE
-        return null;    //modify to return the ArrayList
+        return currentLevel.getGenericSpawnLocs();    //modify to return the ArrayList
     }
 
     /**
@@ -205,9 +200,13 @@ public class GameEngine {
      *
      * @return A Player object representing the player in the game
      */
-    private Player createPlayer() {
-        //YOUR CODE HERE
-        return null;    //modify to return a Player object
+    private Player createPlayer() 
+    {
+        //always spawn by the door
+        int x = currentLevel.getPlayerSpawnX();
+        int y = currentLevel.getPlayerSpawnY();        
+        Player p = new Player(5, x, y);
+        return p;    //modify to return a Player object
     }
 
     /**
@@ -376,7 +375,7 @@ public class GameEngine {
             moveAllCustomers();
             reduceCustomerPatience();
         }
-        gui.updateDisplay(level, player, customers);
+        gui.updateDisplay(layout, player, customers);
     }
 
     /**
@@ -386,10 +385,10 @@ public class GameEngine {
      * customers.
      */
     public void startGame() {
-        level = generateLevel();
+        layout = generateLevel();
         spawnLocations = getSpawns();
         customers = addCustomers();
         player = createPlayer();
-        gui.updateDisplay(level, player, customers);
+        gui.updateDisplay(layout, player, customers);
     }
 }
