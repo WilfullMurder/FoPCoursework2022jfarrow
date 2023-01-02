@@ -1,5 +1,7 @@
 package uk.ac.bradford.cookgame;
 
+import uk.ac.bradford.cookgame.GameEngine.TileType;
+
 /**
  * The Player class is a subclass of Entity and adds specific state and
  * behaviour for the player in the game including stamina, the ability to change
@@ -38,13 +40,14 @@ public class Player extends Entity {
     /**
      * This constructor is used to create a Player object to use in the game
      *
-     * @param maxStamina the maximum stamina of this Player, also used to set
-     * its starting stamina value
+     * 
+     * 
+     * @param levelNum the current level number
      * @param x the X position of this Player in the game
      * @param y the Y position of this Player in the game
      */
-    public Player(int maxStamina, int x, int y) {
-        this.maxStamina = maxStamina;
+    public Player(int levelNum, int x, int y) {
+        this.maxStamina = calculateStamina(levelNum);
         this.stamina = maxStamina;
         carryingFood = false;
         carriedFoodType = 0;
@@ -130,5 +133,68 @@ public class Player extends Entity {
     public void giveFood() {
         carryingFood = false;
         carriedFoodType = 0;
+    }
+    
+    
+    //code below added by J.Farrow
+    
+    
+    /**
+     * Calculates stamina using the formula f(x) = (((x+1)^-2) - log10((x+1)^2)) + 5
+     * @param levelNum the current level number
+     * @return Player stamina
+     */
+    private int calculateStamina(int levelNum)
+    {
+        return (int)(Math.pow(levelNum+1, -2.0))-(int)Math.log10(Math.pow(levelNum+1, 2))+5;
+    }
+    
+    /**
+     * overridden collision check for the neighbouring tile 
+     * @param neighbour the neighbouring tile
+     * @param exclusion any excluded tile
+     * @return 
+     */
+    @Override
+    public boolean collisionCheck(TileType neighbour, TileType exclusion)
+    {
+        //It must be a wall, table or door
+        if(!super.collisionCheck(neighbour, exclusion)){return false;}
+        
+        //It must be a food block
+        switch(neighbour)
+        {
+            case FOOD1:
+                grabFood(1);
+                return false; //Don't walk through food block
+                
+            case FOOD2:
+                grabFood(2);
+                return false; //Don't walk through food block
+                
+            case FOOD3:
+                grabFood(3);
+                return false; //Don't walk through food block
+        }
+        
+        return true;
+    }
+    
+    /**
+     * checks for colliding positions between player and customer
+     * @param c customer to check against
+     * @return Boolean value based on collision presence
+     */
+    public boolean customerCollision(Customer c)
+    {
+        if(c == null){return false;}
+        
+        if(c.getX() == this.getX() && c.getY() == this.getY())
+        {
+            return true;
+        }
+        
+        
+        return false;
     }
 }

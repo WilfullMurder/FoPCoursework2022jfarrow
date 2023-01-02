@@ -2,7 +2,7 @@ package uk.ac.bradford.cookgame;
 
 import java.util.ArrayList;
 import java.awt.Point;
-import java.util.Random;
+
 
 /**
  * The GameEngine class is responsible for managing information about the game,
@@ -23,7 +23,7 @@ public class GameEngine {
      * DOOR tiles can be used for both decoration and for implementing advanced
      * features.
      */
-    public enum TileType {
+    public static enum TileType {
         WALL, FLOOR1, FLOOR2, FOOD1, FOOD2, FOOD3, TABLE, DOOR;
     }
 
@@ -41,15 +41,6 @@ public class GameEngine {
      */
     public static final int LEVEL_HEIGHT = 18;
 
-    /**
-     * A random number generator that can be used to include randomised choices
-     * in the creation of levels, in choosing places to place the player and
-     * customers, and to randomise movement etc. Passing an integer (e.g. 123)
-     * to the constructor called here will give fixed results - the same numbers
-     * will be generated every time WHICH CAN BE VERY USEFUL FOR TESTING AND
-     * BUGFIXING!
-     */
-    private Random rng = new Random();
 
     /**
      * The current level number for the game. As the player completes levels the
@@ -57,7 +48,7 @@ public class GameEngine {
      * difficulty e.g. by creating additional customers and reducing patience
      * etc.
      */
-    private int levelNumber = 1;  //current level
+    private int levelNumber = 0;  //current level
 
     /**
      * The current turn number. Increased by one every turn. Used to control
@@ -74,7 +65,7 @@ public class GameEngine {
      * The GUI associated with this GameEngine object. This link allows the
      * engine to pass level and entity information to the GUI to be drawn.
      */
-    private GameGUI gui;
+    private final GameGUI gui;
 
     /**
      * The 2 dimensional array of tiles that represent the current level. The
@@ -82,7 +73,8 @@ public class GameEngine {
      * when it is created. This is the array that is used to draw images to the
      * screen by the GUI class.
      */
-    private TileType[][] level;
+    private TileType[][] layout;
+    private Level currentLevel;
 
     /**
      * An ArrayList of Point objects used to create and track possible locations
@@ -112,6 +104,7 @@ public class GameEngine {
      * customers[i] = null.
      */
     private Customer[] customers;
+    private int fedCustomers;
 
     /**
      * Constructor that creates a GameEngine object and connects it with a
@@ -135,8 +128,9 @@ public class GameEngine {
      * of the game level using the LEVEL_WIDTH and LEVEL_HEIGHT attributes.
      */
     private TileType[][] generateLevel() {
-        //YOUR CODE HERE
-        return null;    //modfy to return the 2D array that you build in this method
+        currentLevel = new Level(LEVEL_WIDTH, LEVEL_HEIGHT, levelNumber, this);
+        player = createPlayer();
+        return currentLevel.getLayout();    //modfy to return the 2D array that you build in this method
     }
 
     /**
@@ -152,8 +146,7 @@ public class GameEngine {
      * added into the game.
      */
     private ArrayList<Point> getSpawns() {
-        //YOUR CODE HERE
-        return null;    //modify to return the ArrayList
+        return currentLevel.getGenericSpawnLocs();
     }
 
     /**
@@ -181,13 +174,29 @@ public class GameEngine {
      * creates customers by instantiating the Customer class, setting patience,
      * and then setting the X and Y position for the customer using the X and Y
      * values from the Point object that was removed from the spawns ArrayList.
+     * ~ I did it this way first because of the way I set up level generation ~ JFarrow
      *
      * @return An array of Customer objects representing the customers for the
      * current level of the game
      */
     private Customer[] addCustomers() {
-        //YOUR CODE HERE
-        return null;    //modify to return the created array of Customer objects
+       int len = spawnLocations.size();
+       Customer[] customerList = new Customer[len];
+       int count = currentLevel.getCustomerCount();
+       for(int i = 0; i<len;i++)
+       {
+           if(count > 0)
+           {    
+                int index = currentLevel.getRandomInt(0, spawnLocations.size()-1);
+                Point loc = new Point(spawnLocations.get(index).x, spawnLocations.get(index).y);
+                spawnLocations.remove(index);
+                Customer c = new Customer(1,loc.x,loc.y,currentLevel.getRandomInt(0,3));
+                customerList[i] = c;
+                count -= 1;
+           }
+       }
+       
+       return customerList;   
     }
 
     /**
@@ -206,8 +215,8 @@ public class GameEngine {
      * @return A Player object representing the player in the game
      */
     private Player createPlayer() {
-        //YOUR CODE HERE
-        return null;    //modify to return a Player object
+        Player p = new Player(levelNumber, currentLevel.getPlayerSpawnX(), currentLevel.getPlayerSpawnY());
+        return p;    //modify to return a Player object
     }
 
     /**
@@ -215,24 +224,89 @@ public class GameEngine {
      * This method is automatically called by the InputHandler class when the
      * user has presses one of the arrow keys on the keyboard. The method should
      * check which direction for movement is required, by checking which
-     * character was passed to this method (see parameter description below). If
-     * the tile above, below, to the left or to the right is clear then the
+     * character was passed to this method (see parameter description below).
+     * HANDLED IN PLAYER COLLISION 
+     * If the tile above, below, to the left or to the right is clear then the
      * player object should have its position changed to update its position in
      * the game window. If the target tile is not empty then the player should
      * not be moved, but other effects may happen such as giving a customer
-     * food, or picking up food etc. To achieve this, the target tile should be
+     * food, or picking up food etc. 
+     * 
+     * To achieve this, the target tile should be
      * checked to determine the type of tile (food, table, wall etc.) and
      * appropriate methods called or attribute values changed.
      *
      * A second version of this method in a later task will also check if the
      * player's stamina is at zero, and if it is then the player should not be
-     * moved.
+     * moved. ~ I added this immediately because why wouldn't I? -- JFarrow
      *
-     * @param direction A char representing the direction that the player should
+     * @param dir A char representing the direction that the player should
      * move. U is up, D is down, L is left and R is right.
      */
-    public void movePlayer(char direction) {
-        //YOUR CODE HERE
+    public void movePlayer(char dir) 
+    {
+        //player can't move
+        if(player.getStamina() < 0){return;}
+        int dx = 0;
+        int dy = 0;
+        
+        switch(dir)
+            {
+                case 'U':
+                    if(player.collisionCheck(layout[player.getX()][player.getY()-1], null))
+                    {
+                         //passed obstacle collision check move up
+                        dy = -1;
+                        //player.setPosition(player.getX(),player.getY()-1);
+                        break;
+                    }
+                    break;
+                case 'D':
+                   if(player.collisionCheck(layout[player.getX()][player.getY()+1], null))
+                    {
+                         //passed obstacle collision check move down
+                        dy = 1;
+                        //player.setPosition(player.getX(),player.getY()+1);
+                        break;
+                    }
+                   break;
+                case 'L':
+
+                    if(player.collisionCheck(layout[player.getX()-1][player.getY()], null))
+                    {
+                        //passed obstacle collision check move left
+                        dx = -1;
+                        //player.setPosition(player.getX()-1,player.getY());
+                        break;
+                    }
+                    break;
+                case 'R':
+                    
+                    if(player.collisionCheck(layout[player.getX()+1][player.getY()], null))
+                    {
+                        //passed obstacle collision check move right
+                        dx = 1;
+                        //player.setPosition(player.getX()+1,player.getY());
+                        break;
+                    }
+                    break;
+            }
+        
+        for(int i = 0; i < customers.length; i++)
+        {
+            if(customers[i] == null){continue;}
+            if(customers[i].getX() == player.getX()+ dx && customers[i].getY()== player.getY()+ dy)
+            {
+                
+                deliverFood(customers[i]);
+                return;
+                
+            }
+            
+        }
+        
+        player.setPosition(player.getX()+dx, player.getY()+dy);
+        
     }
 
     /**
@@ -249,11 +323,19 @@ public class GameEngine {
      * the customer by calling the correct method on the Customer object
      * indicating that the player has "fed".
      *
-     * @param g The Customer object corresponding to the customer in the game
+     * @param c The Customer object corresponding to the customer in the game
      * that the player just attempted to move into the same tile as.
      */
     private void deliverFood(Customer c) {
-        //YOUR CODE HERE
+        if(player.getCarriedFoodType() == 0){return;}
+        if(c.getFoodWanted() == player.getCarriedFoodType() && !c.beenFed())
+        {
+            player.giveFood();
+            c.feed();
+            score+=c.getPatience();
+            System.out.println(score);
+        }
+
     }
 
     /**
@@ -265,6 +347,89 @@ public class GameEngine {
      */
     private void moveCustomer(Customer c) {
         //YOUR CODE HERE
+        if(c == null || c.satDown()){return;}
+        
+        int[] loc = new int[2];
+        int dir = 0;
+        int dx = 0;
+        int dy = 0;
+        int dirX = c.getX()+dx;
+        int dirY = c.getY()+dy;
+        
+        if(!c.satDown())
+        {
+            //find table locs
+            for(int i = 0; i < LEVEL_WIDTH; i++)
+            {
+                for(int j =0; j < LEVEL_HEIGHT; j++)
+                {
+                    if(layout[i][j] == TileType.TABLE)
+                    {
+                         //find other customers
+                        for(int k = 0; k < customers.length; k++)
+                        {
+                            //table has customer on x axis
+                            if(customers[k].getX() == i-1 || customers[k].getX() == i+1)
+                            {
+                                continue;
+                            }
+                            else
+                            {
+                                //found an empty table
+                                //grab location, break loop
+                                loc[0] = i;
+                                loc[1] = j;
+                                break;
+                                
+                            }
+                        }
+                    }
+                }
+            }
+            
+            //random movement
+            if((loc[0] == 0 && loc[1] == 0) && !c.satDown())
+            {
+                dir = currentLevel.getRandomInt(0,3);
+
+
+                switch(dir)
+                {
+                    case 0:
+                       dx = -1;
+                       break;
+                    case 1:
+                        dx = 1;
+                        break;
+                    case 2:
+                        dy = -1;
+                        break;
+                    case 3:
+                        dy = 1;
+                        break;
+                }
+
+                dirX = c.getX()+dx;
+                dirY = c.getY()+dy;
+
+                if(c.checkCollision(layout[dirX][dirY], null))
+                {
+                    if((int)Math.hypot(dirX-player.getX(),  dirY-player.getY()) <= 3){return;}
+
+                    c.setPosition(dirX, dirY);
+                }
+            }
+            else
+            {
+                dirX = loc[0] - c.getX();
+                dirY = loc[1] - c.getY();
+            }
+                
+            
+           
+        }
+        
+        
     }
 
     /**
@@ -276,7 +441,9 @@ public class GameEngine {
      * object being used in the loop).
      */
     private void moveAllCustomers() {
-        //YOUR CODE HERE
+        for (Customer customer : customers) {
+           moveCustomer(customer);
+        }
     }
 
     /**
@@ -286,8 +453,31 @@ public class GameEngine {
      * to null; when drawing or moving customers the null elements in the
      * customers array are skipped, essentially removing them from the game.
      */
-    private void cleanFedCustomers() {
-        //YOUR CODE HERE
+    private void cleanFedCustomers() 
+    {
+        for(int i =0; i< customers.length; i++)
+        {
+            if(customers[i] != null)
+            {
+                if(customers[i].beenFed())
+                {
+                    customers[i] = null;
+                    fedCustomers += 1;
+                }
+            }
+        }
+        
+    }
+    
+    private void clearLevel()
+    {
+        currentLevel = null;
+        layout = null;
+        spawnLocations = null;
+        player = null;
+        customers = null;
+        nextLevel();
+
     }
 
     /**
@@ -305,8 +495,12 @@ public class GameEngine {
      * positions to add customers and the player using the spawnLocations
      * ArrayList and code in the getSpawns method.
      */
+    
+     //probably don't need this because the brief is handled by level class on every instantiation
     private void nextLevel() {
-        //YOUR CODE HERE
+        levelNumber++;
+        layout = generateLevel();
+       
     }
 
     /**
@@ -320,8 +514,13 @@ public class GameEngine {
      * position in the level by calling its setPosition method with the x and y
      * values of the Point taken from the spawnLocations ArrayList.
      */
+    
+    //probably don't need this as player always spawns by door but it was in the brief
     private void placePlayer() {
-        //YOUR CODE HERE
+        player = null;
+        player = createPlayer();
+        
+
     }
 
     /**
@@ -336,8 +535,9 @@ public class GameEngine {
      * fed, false otherwise
      */
     private boolean allCustomersFed() {
-        //YOUR CODE HERE
-        return false;   //modify to return either true or false
+        //modify to return either true or false
+        
+        return fedCustomers == currentLevel.getCustomerCount();
     }
 
     /**
@@ -369,14 +569,19 @@ public class GameEngine {
      */
     public void doTurn() {
         turnNumber++;
-        if (turnNumber % 10 == 0) {
+        if (turnNumber % 10 == 0) 
+        {
             cleanFedCustomers();
+            if(allCustomersFed())
+            {
+                clearLevel();
+            }
         }
         if (turnNumber % 3 == 0) {
             moveAllCustomers();
             reduceCustomerPatience();
         }
-        gui.updateDisplay(level, player, customers);
+        gui.updateDisplay(layout, player, customers);
     }
 
     /**
@@ -386,10 +591,10 @@ public class GameEngine {
      * customers.
      */
     public void startGame() {
-        level = generateLevel();
+        layout = generateLevel();
         spawnLocations = getSpawns();
         customers = addCustomers();
         player = createPlayer();
-        gui.updateDisplay(level, player, customers);
+        gui.updateDisplay(layout, player, customers);
     }
 }

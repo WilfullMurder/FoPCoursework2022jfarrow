@@ -1,5 +1,7 @@
 package uk.ac.bradford.cookgame;
 
+import uk.ac.bradford.cookgame.GameEngine.TileType;
+
 /**
  * The Entity class stores basic state information for both the Player and
  * Customer object types in the game.
@@ -53,5 +55,23 @@ public abstract class Entity {
         xPos = x;
         yPos = y;
     }
+    
+    //code below added by J.Farrow
+    
+    /**
+     * parent collision function
+     * @param neighbour neighbouring tile
+     * @param exclusion any excluded TileType
+     * @return true by default, exclusion. false on Wall, Door, table
+     */
+    public boolean collisionCheck(TileType neighbour, TileType exclusion)
+    {
+
+        if(neighbour == null || neighbour == TileType.WALL || neighbour == TileType.TABLE || neighbour == TileType.DOOR){return false;}
+        if(neighbour == exclusion){return true;}
+        
+        return true;   
+    }
+            
 
 }

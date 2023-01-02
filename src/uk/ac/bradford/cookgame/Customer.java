@@ -1,5 +1,8 @@
 package uk.ac.bradford.cookgame;
 
+import java.awt.Point;
+import uk.ac.bradford.cookgame.GameEngine.TileType;
+
 /**
  * The Customer class is a subclass of Entity and adds specific state and
  * behaviour for the customers in the game, including patience and the ability
@@ -33,6 +36,8 @@ public class Customer extends Entity {
      * by the player matching the type of food they want.
      */
     private boolean fed;
+    
+    private boolean bSeated;
 
     /**
      * This constructor is used to create a Customer object to use in the game,
@@ -46,6 +51,7 @@ public class Customer extends Entity {
     public Customer(int maxPatience, int x, int y) {
         this(maxPatience, x, y, 1);         //calls four argument constructor with red food wanted
         fed = false;
+        bSeated = false;
     }
 
     /**
@@ -68,6 +74,7 @@ public class Customer extends Entity {
         }
         foodWanted = foodType;
         fed = false;
+        bSeated = false;
     }
 
     /**
@@ -133,6 +140,28 @@ public class Customer extends Entity {
      */
     public boolean beenFed() {
         return fed;
+    }
+    
+    //code below added by J.Farrow
+    
+    public boolean satDown()
+    {
+        return bSeated;
+    }
+    
+    
+    public boolean checkCollision(TileType neighbour, TileType exclusion)
+    {
+        //muts be wall, door, table
+        if(!super.collisionCheck(neighbour, exclusion)){return false;}
+        else if(neighbour == TileType.FOOD1 || neighbour == TileType.FOOD2 ||neighbour == TileType.FOOD3){return false;}
+        
+        return true;
+    }
+    
+    public void findTable()
+    {
+        
     }
 
 }
